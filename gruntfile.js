@@ -16,7 +16,7 @@ module.exports = function (grunt) {
   }
 
   grunt.initConfig({
-    watch: {
+    __watch: {
       options: {
         livereload: true
       },
@@ -50,10 +50,42 @@ module.exports = function (grunt) {
         tasks: []//['jshint']
       }
     },
+      //c9 only allows you to run a server on a single port (AFAIK),
+      //so live reload will cause errors.
+      //Also, c9 seems to have an open file limit
+      //(I was getting a error like this: EMFILE: Too many opened files.)
+      //I can't figure out how to parameterize watch, so instead I've just been
+      //renaming the configuration below to watch when I'm using c9.
+    watch: {
+      options: {
+        livereload: false
+      },
+      jshint: {
+        files: ['gruntfile.js', 'app/pages/**/*.js', 'test/**/*.js'],
+        tasks: ['jshint']
+      },
+      html_src: {
+        files: ['gruntfile.js', 'app/pages/**/*.js', 'app/index.html'],
+        tasks: ['html_src']
+      }
+    },
     connect: {
       app: {
         options: {
           port: 9000,
+          middleware: function (connect) {
+            return [
+              modRewrite(['!(\\.html|\\.png|\\.jpg|\\.gif|\\.jpeg|\\.ico|\\.js|\\.css|\\swf)$ /index.html']),
+              mountFolder(connect, '.tmp'),
+              mountFolder(connect, 'app')
+            ];
+          }
+        }
+      },
+      c9: {
+        options: {
+          hostname: process.env.IP || 'localhost',
+          port: process.env.PORT || 9000,
           middleware: function (connect) {
             return [
               modRewrite(['!(\\.html|\\.png|\\.jpg|\\.gif|\\.jpeg|\\.ico|\\.js|\\.css|\\swf)$ /index.html']),
@@ -349,6 +381,13 @@ module.exports = function (grunt) {
     'html_src',
     'connect:app',
     'open:app',
+    'watch'
+  ]);
+  
+  grunt.registerTask('c9server', [
+    'clean:server',
+    'html_src',
+    'connect:c9',
     'watch'
   ]);
 
